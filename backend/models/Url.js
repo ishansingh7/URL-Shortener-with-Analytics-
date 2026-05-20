@@ -58,6 +58,20 @@ const urlSchema = new mongoose.Schema(
       type: [visitSchema],
       default: [],
     },
+    expiresAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    expirationDays: {
+      type: Number,
+      default: null,
+    },
+    isExpired: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
   },
   {
     timestamps: true,

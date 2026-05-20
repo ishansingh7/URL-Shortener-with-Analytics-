@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { QRCodeSVG } from "qrcode.react";
 import {
   BarChart3,
   Globe2,
@@ -8,6 +9,8 @@ import {
   MousePointerClick,
   Search,
   TimerReset,
+  QrCode,
+  X,
 } from "lucide-react";
 import {
   Link,
@@ -78,6 +81,8 @@ function Insights() {
     useState("");
   const [searchParams, setSearchParams] =
     useSearchParams();
+  const [qrModalData, setQrModalData] =
+    useState(null);
 
   const userInfo = JSON.parse(
     localStorage.getItem("userInfo")
@@ -215,6 +220,32 @@ function Insights() {
       </div>
     </div>
   );
+
+  const showQrModal = (url) => {
+    setQrModalData(url);
+  };
+
+  const closeQrModal = () => {
+    setQrModalData(null);
+  };
+
+  const downloadQrCode = () => {
+    const qrElement = document.getElementById("insights-qr-code-element");
+    const canvas = qrElement.querySelector("canvas");
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
+    link.download = `${qrModalData.shortCode}-qr.png`;
+    link.click();
+  };
+
+  const copyUrl = async (value) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      alert("Copied to clipboard!");
+    } catch {
+      alert("Unable to copy");
+    }
+  };
 
   return (
     <div className="analytics-page">
@@ -437,6 +468,42 @@ function Insights() {
                   </div>
                 </div>
 
+                <div className="chart-panel">
+                  <div className="panel-heading">
+                    <h3>URL QR Code</h3>
+                    <span>Share your short URL with a QR code</span>
+                  </div>
+
+                  <div className="qr-display-section">
+                    <div className="qr-preview">
+                      <QRCodeSVG
+                        value={selectedUrl.shortUrl}
+                        size={200}
+                        level="H"
+                        includeMargin={true}
+                      />
+                    </div>
+
+                    <div className="qr-actions">
+                      <button
+                        className="qr-action-btn primary"
+                        onClick={() => showQrModal(selectedUrl)}
+                      >
+                        <QrCode size={16} />
+                        View Full QR Code
+                      </button>
+
+                      <button
+                        className="qr-action-btn"
+                        onClick={() => copyUrl(selectedUrl.shortUrl)}
+                      >
+                        <Link2 size={16} />
+                        Copy Short URL
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 {selectedUrl.safety && (
                   <div className="chart-panel">
                     <div className="panel-heading">
@@ -612,6 +679,65 @@ function Insights() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {qrModalData && (
+          <div className="qr-modal-overlay" onClick={closeQrModal}>
+            <div className="qr-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="qr-modal-header">
+                <h2>QR Code</h2>
+                <button
+                  className="qr-close-btn"
+                  onClick={closeQrModal}
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              <div className="qr-modal-content">
+                <div id="insights-qr-code-element" className="qr-code-container">
+                  <QRCodeSVG
+                    value={qrModalData.shortUrl}
+                    size={300}
+                    level="H"
+                    includeMargin={true}
+                  />
+                </div>
+                <div className="qr-modal-info">
+                  <p>
+                    <strong>Short URL:</strong> {qrModalData.shortUrl}
+                  </p>
+                  <p>
+                    <strong>Short Code:</strong> {qrModalData.shortCode}
+                  </p>
+                  {qrModalData.expiresAt && (
+                    <p>
+                      <strong>Expires:</strong> {new Date(qrModalData.expiresAt).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+                <div className="qr-modal-actions">
+                  <button
+                    className="download-qr-btn"
+                    onClick={downloadQrCode}
+                  >
+                    Download QR Code
+                  </button>
+                  <button
+                    className="copy-qr-btn"
+                    onClick={() => copyUrl(qrModalData.shortUrl)}
+                  >
+                    Copy Short URL
+                  </button>
+                  <button
+                    className="cancel-qr-btn"
+                    onClick={closeQrModal}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

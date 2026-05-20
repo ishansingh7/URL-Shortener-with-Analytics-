@@ -31,12 +31,15 @@ function PublicStats() {
         );
 
         if (isMounted) {
+          const normalizedShortUrl =
+            normalizeShortUrl(
+              res.data.shortUrl
+            );
+
           setData({
             ...res.data,
-            redirectUrl: res.data.shortUrl,
-            shortUrl: normalizeShortUrl(
-              res.data.shortUrl
-            ),
+            redirectUrl: normalizedShortUrl,
+            shortUrl: normalizedShortUrl,
           });
         }
       } catch (error) {

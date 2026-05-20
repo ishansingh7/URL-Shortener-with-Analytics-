@@ -9,4 +9,7 @@ export default defineConfig({
       '/api': 'https://url-shortener-with-analytics-vrmk.onrender.com',
     },
   },
+  optimizeDeps: {
+    include: ['qrcode.react'],
+  },
 });

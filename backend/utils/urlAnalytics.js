@@ -105,6 +105,9 @@ const buildDailyTrend = (visits = []) => {
 
 const summarizeUrl = (url, shortUrl) => {
   const visits = Array.isArray(url.visits) ? url.visits : [];
+  const hasExpired =
+    Boolean(url.expiresAt) &&
+    new Date(url.expiresAt) <= new Date();
   const recentVisits = [...visits]
     .sort((visitA, visitB) => new Date(visitB.visitedAt) - new Date(visitA.visitedAt))
     .slice(0, MAX_RECENT_VISITS);
@@ -118,6 +121,9 @@ const summarizeUrl = (url, shortUrl) => {
     createdAt: url.createdAt,
     updatedAt: url.updatedAt,
     lastVisitedAt: url.lastVisitedAt,
+    expiresAt: url.expiresAt,
+    expirationDays: url.expirationDays,
+    isExpired: url.isExpired || hasExpired,
     qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(shortUrl)}`,
     safety: analyzeUrlSafety(
       url.originalUrl

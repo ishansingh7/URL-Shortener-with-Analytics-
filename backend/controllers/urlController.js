@@ -11,10 +11,11 @@ const {
 
 const buildShortUrl = (req, shortCode) => {
   const baseUrl =
+    process.env.SHORT_URL_BASE ||
     process.env.BASE_URL ||
     `${req.protocol}://${req.get("host")}`;
 
-  return `${baseUrl}/${shortCode}`;
+  return `${baseUrl.replace(/\/+$/, "")}/${shortCode}`;
 };
 
 const isValidHttpUrl = (value) => {
@@ -52,19 +53,28 @@ const buildUrlResponse = (req, url) => {
   return summarizeUrl(url, shortUrl);
 };
 
-const createShortUrl = async (originalUrl, userId) => {
+const createShortUrl = async (originalUrl, userId, expirationDays = null) => {
   const shortCode = await generateUniqueShortCode();
-
-  return Url.create({
+  
+  const urlData = {
     user: userId,
     originalUrl,
     shortCode,
-  });
+  };
+  
+  if (expirationDays && expirationDays > 0) {
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + expirationDays);
+    urlData.expiresAt = expiresAt;
+    urlData.expirationDays = expirationDays;
+  }
+
+  return Url.create(urlData);
 };
 
 const shortenUrl = async (req, res) => {
   try {
-    const { originalUrl } = req.body;
+    const { originalUrl, expirationDays } = req.body;
 
     if (!originalUrl) {
       return res.status(400).json({
@@ -80,7 +90,8 @@ const shortenUrl = async (req, res) => {
 
     const url = await createShortUrl(
       originalUrl,
-      req.user
+      req.user,
+      expirationDays
     );
 
     res.status(201).json(
@@ -184,7 +195,7 @@ const getSingleUrlAnalytics = async (req, res) => {
 
 const updateUrl = async (req, res) => {
   try {
-    const { originalUrl } = req.body;
+    const { originalUrl, expirationDays } = req.body;
 
     if (!originalUrl) {
       return res.status(400).json({
@@ -210,6 +221,21 @@ const updateUrl = async (req, res) => {
     }
 
     url.originalUrl = originalUrl;
+    
+    if (expirationDays !== undefined) {
+      if (expirationDays && expirationDays > 0) {
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + expirationDays);
+        url.expiresAt = expiresAt;
+        url.expirationDays = expirationDays;
+        url.isExpired = false;
+      } else {
+        url.expiresAt = null;
+        url.expirationDays = null;
+        url.isExpired = false;
+      }
+    }
+    
     await url.save();
 
     res.status(200).json(
@@ -376,6 +402,18 @@ const redirectToOriginalUrl = async (req, res) => {
     if (!url) {
       return res.status(404).json({
         message: "Short URL not found",
+      });
+    }
+
+    // Check if URL has expired
+    if (url.expiresAt && new Date() > url.expiresAt) {
+      if (!url.isExpired) {
+        url.isExpired = true;
+        await url.save();
+      }
+      return res.status(410).json({
+        message: "This short URL has expired",
+        expiredAt: url.expiresAt,
       });
     }
 

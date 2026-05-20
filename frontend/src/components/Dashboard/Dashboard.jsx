@@ -52,6 +52,12 @@ function Dashboard() {
     useState(false);
   const [safetyState, setSafetyState] =
     useState(null);
+  const [expirationDays, setExpirationDays] =
+    useState("");
+  const [createdAt, setCreatedAt] =
+    useState(null);
+  const [expiresAt, setExpiresAt] =
+    useState(null);
 
   const userInfo = JSON.parse(
     localStorage.getItem("userInfo")
@@ -93,11 +99,17 @@ function Dashboard() {
     try {
       setLoading(true);
 
+      const payload = {
+        originalUrl: nextUrl,
+      };
+      
+      if (expirationDays) {
+        payload.expirationDays = parseInt(expirationDays);
+      }
+
       const res = await axios.post(
         `${API_URL}/api/url/shorten`,
-        {
-          originalUrl: nextUrl,
-        },
+        payload,
         authConfig
       );
 
@@ -114,7 +126,10 @@ function Dashboard() {
         normalizedUrl.qrCodeUrl
       );
       setQrCodeBlocked(false);
+      setCreatedAt(res.data.createdAt);
+      setExpiresAt(res.data.expiresAt);
       setUrl("");
+      setExpirationDays("");
     } catch (error) {
       alert(
         error.response?.data?.message ||
@@ -461,6 +476,24 @@ function Dashboard() {
                     setUrl(e.target.value)
                   }
                 />
+              </div>
+
+              <div className="expiration-input">
+                <label>URL Expiration (Optional)</label>
+                <select
+                  value={expirationDays}
+                  onChange={(e) =>
+                    setExpirationDays(e.target.value)
+                  }
+                  className="expiration-select"
+                >
+                  <option value="">No Expiration</option>
+                  <option value="1">1 Day</option>
+                  <option value="7">7 Days</option>
+                  <option value="30">30 Days</option>
+                  <option value="90">90 Days</option>
+                  <option value="365">1 Year</option>
+                </select>
               </div>
 
               <div className="shortener-actions">

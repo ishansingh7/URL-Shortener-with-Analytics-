@@ -1,6 +1,7 @@
 export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 export const SHORT_URL_BASE =
-  "http://shorturl";
+  import.meta.env.VITE_SHORT_URL_BASE ||
+  API_URL;
 
 export const isValidUrl = (value) => {
   try {
@@ -127,12 +128,17 @@ export const normalizeShortUrl = (
   try {
     const parsedUrl = new URL(value);
 
-    return `${SHORT_URL_BASE}${parsedUrl.pathname}`;
+    return `${SHORT_URL_BASE.replace(/\/+$/, "")}${parsedUrl.pathname}`;
   } catch {
-    return value.replace(
-      "http://localhost:5000",
-      SHORT_URL_BASE
-    );
+    return value
+      .replace(
+        "http://localhost:5000",
+        SHORT_URL_BASE
+      )
+      .replace(
+        "https://localhost:5000",
+        SHORT_URL_BASE
+      );
   }
 };
 
@@ -143,12 +149,19 @@ export const normalizeQrCodeUrl = (
     return value;
   }
 
-  return value.replace(
-    encodeURIComponent(
-      "http://localhost:5000"
-    ),
-    encodeURIComponent(SHORT_URL_BASE)
-  );
+  return value
+    .replace(
+      encodeURIComponent(
+        "http://localhost:5000"
+      ),
+      encodeURIComponent(SHORT_URL_BASE)
+    )
+    .replace(
+      encodeURIComponent(
+        "https://localhost:5000"
+      ),
+      encodeURIComponent(SHORT_URL_BASE)
+    );
 };
 
 export const normalizeUrlRecord = (
@@ -158,12 +171,13 @@ export const normalizeUrlRecord = (
     return item;
   }
 
+  const normalizedShortUrl =
+    normalizeShortUrl(item.shortUrl);
+
   return {
     ...item,
-    redirectUrl: item.shortUrl,
-    shortUrl: normalizeShortUrl(
-      item.shortUrl
-    ),
+    redirectUrl: normalizedShortUrl,
+    shortUrl: normalizedShortUrl,
     qrCodeUrl: normalizeQrCodeUrl(
       item.qrCodeUrl
     ),

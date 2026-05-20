@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { QRCodeSVG } from "qrcode.react";
 import {
   Link2,
   Copy,
@@ -14,6 +15,7 @@ import {
   Globe2,
   Clock3,
   X,
+  QrCode,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -39,13 +41,18 @@ function ManageUrls() {
     useState("");
   const [editingValue, setEditingValue] =
     useState("");
+  const [
+    editingExpirationDays,
+    setEditingExpirationDays,
+  ] = useState("");
   const [savingId, setSavingId] =
     useState("");
   const [bulkLoading, setBulkLoading] =
     useState(false);
   const [bulkFileName, setBulkFileName] =
     useState("");
-
+  const [qrModalData, setQrModalData] =
+    useState(null);
   const userInfo = JSON.parse(
     localStorage.getItem("userInfo")
   );
@@ -133,11 +140,17 @@ function ManageUrls() {
   const startEditing = (item) => {
     setEditingId(item._id);
     setEditingValue(item.originalUrl);
+    setEditingExpirationDays(
+      item.expirationDays
+        ? `${item.expirationDays}`
+        : ""
+    );
   };
 
   const cancelEditing = () => {
     setEditingId("");
     setEditingValue("");
+    setEditingExpirationDays("");
   };
 
   const handleSaveEdit = async (id) => {
@@ -156,6 +169,13 @@ function ManageUrls() {
         `${API_URL}/api/url/${id}`,
         {
           originalUrl: editingValue,
+          expirationDays:
+            editingExpirationDays
+              ? parseInt(
+                  editingExpirationDays,
+                  10
+                )
+              : 0,
         },
         authConfig
       );
@@ -230,6 +250,23 @@ function ManageUrls() {
       setBulkLoading(false);
       event.target.value = "";
     }
+  };
+
+  const showQrModal = (item) => {
+    setQrModalData(item);
+  };
+
+  const closeQrModal = () => {
+    setQrModalData(null);
+  };
+
+  const downloadQrCode = () => {
+    const qrElement = document.getElementById("qr-code-element");
+    const canvas = qrElement.querySelector("canvas");
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
+    link.download = `${qrModalData.shortCode}-qr.png`;
+    link.click();
   };
 
   const filteredUrls = urls.filter((item) =>
@@ -438,6 +475,42 @@ function ManageUrls() {
                               Cancel
                             </button>
                           </div>
+
+                          <div className="expiration-input">
+                            <label>
+                              Expiration
+                            </label>
+                            <select
+                              value={
+                                editingExpirationDays
+                              }
+                              onChange={(e) =>
+                                setEditingExpirationDays(
+                                  e.target.value
+                                )
+                              }
+                              className="expiration-select"
+                            >
+                              <option value="">
+                                No Expiration
+                              </option>
+                              <option value="1">
+                                1 Day
+                              </option>
+                              <option value="7">
+                                7 Days
+                              </option>
+                              <option value="30">
+                                30 Days
+                              </option>
+                              <option value="90">
+                                90 Days
+                              </option>
+                              <option value="365">
+                                1 Year
+                              </option>
+                            </select>
+                          </div>
                         </div>
                       ) : (
                         <p>{item.originalUrl}</p>
@@ -474,6 +547,35 @@ function ManageUrls() {
                           )}
                         </strong>
                       </div>
+
+                      {item.expiresAt && (
+                        <div
+                          className={`url-meta-box expiry-box ${item.isExpired ? "expired" : "active"}`}
+                        >
+                          <span>
+                            {item.isExpired
+                              ? "Expired On"
+                              : "Expires"}
+                          </span>
+                          <strong>
+                            {formatDate(
+                              item.expiresAt
+                            )}
+                          </strong>
+                          <small>
+                            {item.isExpired
+                              ? "This short link is no longer active."
+                              : "Active until the scheduled expiry date."}
+                          </small>
+                        </div>
+                      )}
+
+                      {item.isExpired && (
+                        <div className="url-meta-box expired">
+                          <span>Status</span>
+                          <strong>Expired</strong>
+                        </div>
+                      )}
                     </div>
 
                     {item.safety && (
@@ -516,6 +618,7 @@ function ManageUrls() {
                         onClick={() =>
                           copyUrl(item.shortUrl)
                         }
+                        title="Copy URL"
                       >
                         <Copy size={16} />
                       </button>
@@ -525,6 +628,7 @@ function ManageUrls() {
                         target="_blank"
                         rel="noreferrer"
                         className="action-btn"
+                        title="Open URL"
                       >
                         <ExternalLink size={16} />
                       </a>
@@ -532,8 +636,19 @@ function ManageUrls() {
                       <button
                         className="action-btn"
                         onClick={() =>
+                          showQrModal(item)
+                        }
+                        title="Show QR Code"
+                      >
+                        <QrCode size={16} />
+                      </button>
+
+                      <button
+                        className="action-btn"
+                        onClick={() =>
                           startEditing(item)
                         }
+                        title="Edit URL"
                       >
                         <Pencil size={16} />
                       </button>
@@ -546,6 +661,7 @@ function ManageUrls() {
                         disabled={
                           deletingId === item._id
                         }
+                        title="Delete URL"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -554,6 +670,65 @@ function ManageUrls() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {qrModalData && (
+          <div className="qr-modal-overlay" onClick={closeQrModal}>
+            <div className="qr-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="qr-modal-header">
+                <h2>QR Code</h2>
+                <button
+                  className="qr-close-btn"
+                  onClick={closeQrModal}
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              <div className="qr-modal-content">
+                <div id="qr-code-element" className="qr-code-container">
+                  <QRCodeSVG
+                    value={qrModalData.shortUrl}
+                    size={300}
+                    level="H"
+                    includeMargin={true}
+                  />
+                </div>
+                <div className="qr-modal-info">
+                  <p>
+                    <strong>Short URL:</strong> {qrModalData.shortUrl}
+                  </p>
+                  <p>
+                    <strong>Short Code:</strong> {qrModalData.shortCode}
+                  </p>
+                  {qrModalData.expiresAt && (
+                    <p>
+                      <strong>Expires:</strong> {formatDate(qrModalData.expiresAt)}
+                    </p>
+                  )}
+                </div>
+                <div className="qr-modal-actions">
+                  <button
+                    className="download-qr-btn"
+                    onClick={downloadQrCode}
+                  >
+                    Download QR Code
+                  </button>
+                  <button
+                    className="copy-qr-btn"
+                    onClick={() => copyUrl(qrModalData.shortUrl)}
+                  >
+                    Copy Short URL
+                  </button>
+                  <button
+                    className="cancel-qr-btn"
+                    onClick={closeQrModal}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
