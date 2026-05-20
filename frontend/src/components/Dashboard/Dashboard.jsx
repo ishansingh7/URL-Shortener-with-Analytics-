@@ -24,9 +24,8 @@ import "./Dashboard.css";
 import {
   normalizeUrlRecord,
   safetyClassName,
+  API_URL,
 } from "../../utils/urlHelpers";
-
-const API_URL = "http://localhost:5000";
 
 function Dashboard() {
   const [searchParams, setSearchParams] =
