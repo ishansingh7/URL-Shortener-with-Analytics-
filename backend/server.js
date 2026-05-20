@@ -29,6 +29,14 @@ app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/url", require("./routes/urlRoutes"));
 app.get("/:shortCode", redirectToOriginalUrl);
 
+/* Error Handling */
+app.use((err, req, res, next) => {
+  console.error("Error:", err.message);
+  res.status(err.status || 500).json({ 
+    error: err.message || "Internal Server Error" 
+  });
+});
+
 /* Server */
 
 const PORT = process.env.PORT || 5000;
