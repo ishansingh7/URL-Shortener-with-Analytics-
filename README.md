@@ -8,7 +8,7 @@ Built with a premium UI/UX design using **React.js**, **Node.js**, **Express.js*
 # 🌐 Live Demo
 
 🚀 **Frontend Live:**  
-https://urlshortmaker.vercel.app/manage-urls
+https://urlshortmaker.vercel.app
 
 ⚡ **Backend API:**  
 
