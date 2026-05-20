@@ -6,7 +6,14 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+<<<<<<< HEAD
       '/api': 'http://localhost:5000',
     },
   },
 });
+=======
+      '/api': 'https://url-shortener-with-analytics-fsre.onrender.com',
+    },
+  },
+});
+>>>>>>> 92e08375ea182bcbf032925eb2ff7e1840518d4f
